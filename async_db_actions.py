@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 
 
@@ -30,10 +31,22 @@ async def create_item(table,pk):
         return tasks
 
 
-#delete all items asyncro
-async def delete_all(table,pk):
+#scan limit items
+async def scan_items(table,pk):
     pass
 
+#delete all items asyncro
+async def delete_all(response,table):
+    async with ClientSession() as session:
+        client = Client(AIOHTTP(session),Credentials.auto(),"ap-south-1")
+
+        data = [i["userid"] async for i in response]
+        task=[]
+        #task=[asyncio.create_task(table.deleteItem("userid",i) for i in data]
+        for i in data:
+              task.append(asyncio.create_task(table.delete_item({"userid":i})))
+        print("The tasks are created")
+        return task
 async def example():
 
     async with ClientSession() as session:
@@ -46,26 +59,31 @@ async def example():
                 KeySchema(hash_key=KeySpec("Key",KeyType.string)),
             )
         #performing the actions together
-        try:
 
-            option = int(input("Select the option:\n1.Create_bulkdata\n2.Delete_all_data \nEnter the option:"))
-            if option ==1:
-                tasks =[]
-                #create collections of data
-                for _ in range(100):
-                    data = {
-                        "userid":str(random.randint(12445,13674)),
-                        "value":str(random.randint(10000,20000))}
-                    tasks.append(data)
-                #passing the datas to create functions
-                print("datas created")
-                datas = await create_item(table,tasks)
-                responses = await asyncio.gather(*datas)
-                print("Datas created successfully")
-            elif option==2:
-                pass
+        option = int(input("Select the option:\n1.Create_bulkdata\n2.Delete_all_data \nEnter the option:"))
+        if option ==1:
+            tasks =[]
+            #create collections of data
+            for _ in range(100):
+                data = {
+                    "userid":str(random.randint(12445,13674)),
+                    "value":str(random.randint(10000,20000))}
+                tasks.append(data)
+            #passing the datas to create functions
+            print("datas created")
+            datas = await create_item(table,tasks)
+            responses = await asyncio.gather(*datas)
+            print("Datas created successfully")
+        elif option==6:
+            pass
                 #delete all the data
-        except Exception as err:
-            print("Some sort of error happend\n")
-            print(err)
+        elif option==2:
+
+            response = client.scan("test")
+            #getting all the data
+
+
+            tasks = await delete_all(response,table)
+            resp = await asyncio.gather(*tasks)
+            print("datas deleted successfully")
 asyncio.run(example())
